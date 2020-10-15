@@ -12,6 +12,8 @@ library(tidyverse)
 # That is, we don't want all the red beads to have ID 1 through 500 and so on.
 # Sort the urn by ID.
 
+# Beads is a vector
+
 beads <- c(rep("red", 500), rep("blue", 490), rep("yellow", 10))
 
 urn <- tibble(ID = 1:1000,
@@ -46,6 +48,16 @@ tibble(urn_red = seq(100, 700, by = 100)) %>%
 
 Interpret the meaning of the graphic.
 
+Each column is a distribution of the beads.
+```{r sc1}
+  scene_1 <-
+  tibble(urn_red = 0:1000) %>% 
+  mutate(paddle_red = map(urn_red, ~ rbinom(n = 100, size = 25, prob = ./1000))) %>% 
+  unnest(paddle_red)
+
+  ggplot(scene_1, aes(x = paddle_red, y = urn_red)) +
+  geom_point(alpha = 0.01)
+```
 
 
 
@@ -53,6 +65,20 @@ Interpret the meaning of the graphic.
 
 **Prompt:** Using the joint distribution we calculated in Scene 5 as input, calculate your posterior probability density for the number of red beads in the urn, given that that 10 red were sampled in our paddle of 25.
 
+```{r sc2}
+scene_2 <-
+  scene_1 %>%
+  filter(paddle_red == 10) %>%
+  group_by(urn_red) %>%
+  summarize(total = n(), .groups = "drop") %>%
+  mutate(probs = total / sum(total)) %>%
+  select(-total)
+
+ggplot(scene_2, aes(x = urn_red, y = probs)) +
+  geom_col(color = "dodgerblue")
+  
+
+```
 
 
 
@@ -60,5 +86,15 @@ Interpret the meaning of the graphic.
 
 **Prompt:** With our posterior probability distribution, we can now forecast outcomes which we have not yet seen. For example, what is the probability of getting more than 3 reds if we sample 20 from the urn, given our posterior? (That is, we are pretending that we don't know the number of red beads in the urn.)
 
+```{r scene 3}
+
+scene_2 %>%
+  mutate(prob_3 = map(urn_red, ~ rbinom(n = 100, size = 20, prob = ./1000))) %>%
+  unnest(prob_3) %>%
+  mutate(is_more = ifelse(prob_3 > 3, TRUE, FALSE)) %>%
+  summarize(weighted.mean(is_more, probs))
+
+
+```
 
 
